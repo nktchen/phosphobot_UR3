@@ -375,7 +375,7 @@ export function AIControlPage() {
                     value={selectedAngleFormat}
                     onValueChange={setSelectedAngleFormat}
                   >
-                    <ToggleGroupItem value="radians" className="flex-none">
+                    <ToggleGroupItem value="rad" className="flex-none">
                       <div className="flex items-center w-full">
                         <TestTubeDiagonal className="mr-1 h-4 w-4 text-green-500" />
                         Radians (default)
@@ -566,7 +566,7 @@ export function AIControlPage() {
                     AI state: {aiStatus?.status}
                     {aiStatus?.status === "waiting" && (
                       // add spinner
-                      <LoaderCircle className="inline-block h-4 w-4 animate-spin ml-2" />
+                      <LoaderCircle className="inline-block size-4 animate-spin" />
                     )}
                   </Badge>
                 </div>

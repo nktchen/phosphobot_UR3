@@ -87,20 +87,23 @@ For development or if you face issues with some submodule or version, you can in
    make
    ```
 
-   Which is a shortcut for the following command:
+   Which is a shortcut for the following two commands. First, build frontend:
 
-   ```
+   ```bash
    cd ./dashboard && ((npm i && npm run build && mkdir -p ../phosphobot/resources/dist/ && cp -r ./dist/* ../phosphobot/resources/dist/) || echo "npm command failed, continuing anyway")
+   ```
+
+   Then, build backend:
+
+   ```bash
    cd phosphobot && uv run phosphobot run --simulation=headless
    ```
-
-   On Windows, run the full command to build the app.
 
 ### Troubleshooting: pybullet won't build on Windows
 
 You may encounter the error: `error: Microsoft Visual C++ 14.0 is required. Get it with "Microsoft Visual C++ Build Tools`
 
-If so, you need to install [Visual Studio](https://visualstudio.microsoft.com/downloads/) and [the Microsoft C++ v14 tools (it should be called C++ build tools)](https://visualstudio.microsoft.com/visual-cpp-build-tools/).
+If so, you need to install [Visual Studio](https://visualstudio.microsoft.com/downloads/) and [the Microsoft C++ v14 tools (it's the first item in the list of additional downloads, should be called C++ build tools for Windows)](https://visualstudio.microsoft.com/visual-cpp-build-tools/).
 
 ### Troubleshooting: pybullet won't compile on MacOS Silicon
 

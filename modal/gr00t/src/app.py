@@ -4,7 +4,11 @@ from pathlib import Path
 import sentry_sdk
 from fastapi import HTTPException
 from huggingface_hub import HfApi
-from huggingface_hub.errors import HFValidationError
+from huggingface_hub.errors import (
+    HFValidationError,
+    RepositoryNotFoundError,
+    RevisionNotFoundError,
+)
 from loguru import logger
 
 import modal
@@ -174,44 +178,58 @@ def serve(
         from gr00t.model.policy import Gr00tPolicy  # type: ignore
         from phosphobot.am.gr00t import RobotInferenceServer
 
-        # Check if we have the model in the volume
-        model_path = f"/data/models/{model_id}"
-        if checkpoint is not None:
-            model_path = f"/data/models/{model_id}/{checkpoint}"
-
         # Check if this path exists in the container
-        if not os.path.exists(model_path):
-            logger.warning(
-                f"🤗 Model {model_id} not found in Modal volume. Will be downloaded from HuggingFace."
+        start_time = time.time()
+        try:
+            local_model_path = snapshot_download(
+                repo_id=model_id,
+                repo_type="model",
+                revision=str(checkpoint) if checkpoint is not None else None,
+                cache_dir="/data/hf_cache",
             )
-            # Downloading the model from HF
-            try:
-                # Don't download the whole repo, just the checkpoint
-                if checkpoint is not None:
-                    model_path = snapshot_download(
-                        repo_id=model_id,
-                        repo_type="model",
-                        revision=str(checkpoint),
-                        local_dir=model_path,
-                    )
-                else:
-                    model_path = snapshot_download(
-                        repo_id=model_id,
-                        repo_type="model",
-                        revision="main",
-                        local_dir=model_path,
-                    )
+        except RepositoryNotFoundError as e:
+            logger.error(f"Failed to download model {model_id}: {e}")
+            _update_server_status(supabase_client, server_id, "failed")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Model {model_id} not found. Make sure the model is public. Error: {e}",
+            )
+        except RevisionNotFoundError as e:
+            logger.error(
+                f"Failed to download model {model_id} at revision {checkpoint}: {e}"
+            )
+            _update_server_status(supabase_client, server_id, "failed")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Model {model_id} at revision {checkpoint} not found. Error: {e}",
+            )
+        except Exception as e:
+            logger.error(f"Failed to download model {model_id}: {e}")
+            _update_server_status(supabase_client, server_id, "failed")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to download model {model_id}. Error: {e}",
+            )
 
-            except Exception as e:
-                logger.info(
-                    f"Failed to download model {model_id} from HuggingFace: {e}"
-                )
-        else:
-            logger.info(f"⛏️ Model {model_id} found in Modal volume")
+        # Check if the model path exists now, if not, raise an error
+        if not os.path.exists(local_model_path):
+            logger.error(
+                f"Model path {local_model_path} does not exist after download attempt."
+            )
+            _update_server_status(supabase_client, server_id, "failed")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Model path {local_model_path} does not exist after download attempt.",
+            )
 
+        logger.info(
+            f"✅ Downloaded model {model_id} to {local_model_path} after {time.time() - start_time} seconds"
+        )
+
+        server = None
         try:
             args = Namespace(
-                model_path=model_path,
+                model_path=local_model_path,
                 embodiment_tag=model_specifics.embodiment_tag,
                 server=True,
                 client=False,
@@ -265,12 +283,11 @@ def serve(
                 detail=f"Server error: {e}",
             )
         finally:
-            # Stop the server and update the status
-            server._kill_server()
-            # Clean up resources
-            if hasattr(server, "context"):
+            # Stop the server
+            if server is not None:
+                server._kill_server()
+                # Clean up resources
                 server.context.destroy(linger=0)
-            if hasattr(server, "socket"):
                 server.socket.close()
 
 
