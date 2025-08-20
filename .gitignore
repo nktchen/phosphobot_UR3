@@ -180,4 +180,4 @@ wandb/
 config.yaml
 node_modules
 .testenv
-add :Zone.Identifier files to .gitignore
+*:Zone.Identifier
