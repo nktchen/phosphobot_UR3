@@ -14,6 +14,7 @@ from phosphobot.hardware import (
     BaseRobot,
     ExcavatorHardware,
     KochHardware,
+    UR3Hardware,
     LeKiwi,
     PiperHardware,
     RemotePhosphobot,
@@ -36,6 +37,7 @@ robot_name_to_class = {
     PiperHardware.name: PiperHardware,
     RemotePhosphobot.name: RemotePhosphobot,
     ExcavatorHardware.name: ExcavatorHardware,
+    UR3Hardware.name: UR3Hardware,
 }
 
 
