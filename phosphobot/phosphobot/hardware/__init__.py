@@ -9,3 +9,4 @@ from .so100 import SO100Hardware
 from .wx250s import WX250SHardware
 from .phosphobot import RemotePhosphobot
 from .excavator import ExcavatorHardware
+from .UR3 import UR3Hardware
