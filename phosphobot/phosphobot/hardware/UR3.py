@@ -19,81 +19,29 @@ class UR3Hardware(BaseManipulator):
     AXIS_ORIENTATION = [0, 0, 0, 1]
 
     # Logical servo identifiers (simulation-only; used for shapes/lengths)
-    # Теперь 6 UR3 + 1 actuated gripper joint (robotiq_85_left_knuckle_joint)
-    SERVO_IDS: List[int] = [1, 2, 3, 4, 5, 6, 7]
+    # 6 UR3 + 6 actuated gripper joint
+    # shoulder_pan_joint, 'shoulder_lift_joint', elbow_joint, 
+    # 'wrist_1_joint', 'wrist_2_joint','wrist_3_joint' 
+    # robotiq_85_left_knuckle_joint, robotiq_85_right_knuckle_joint, 
+    # robotiq_85_left_inner_knuckle_joint, robotiq_85_right_inner_knuckle_joint
+    # robotiq_85_left_finger_tip_joint, robotiq_85_right_finger_tip_joint
+    SERVO_IDS: List[int] = [0, 1, 2, 3, 4, 5, 10, 11, 14, 15, 16, 17]
     RESOLUTION: int = 4096
 
-    # Reasonable default joint poses (radians)
-    CALIBRATION_POSITION: List[float] = [0.0] * 7
-    SLEEP_POSITION: List[float] | None = [0.0, -1.57, 1.57, 0.0, 1.57, 0.0, 0.0]
+    CALIBRATION_POSITION: List[float] = [0.0] * 12
+    SLEEP_POSITION: List[float] | None = [0.0, -1.57, 1.57, 0.0, 1.57, 0.0] + [0.0] * 6
 
-    # Defaults (will be refined at runtime from joint/link names)
-    END_EFFECTOR_LINK_INDEX: int = 0
-    GRIPPER_JOINT_INDEX: int = 11
+    END_EFFECTOR_LINK_INDEX: int = 7
+    GRIPPER_JOINT_INDEX: int = 10
 
     def __init__(self, only_simulation: bool = True, **kwargs):
         # Provide provisional indices to allow BaseManipulator init
         super().__init__(only_simulation=only_simulation, **kwargs)
-
-        # After the URDF is loaded, refine indices based on names
-        # We try to locate 'tool0' as end-effector link and
-        # 'robotiq_85_left_knuckle_joint' as the gripper actuator
-        try:
-            if len(self.SERVO_IDS) != len(self.actuated_joints):
-                self.SERVO_IDS = list(range(1, len(self.actuated_joints) + 1))
-                logger.warning(f"UR3: SERVO_IDS updated to match actuated joints: {self.SERVO_IDS}")
-            if len(self.CALIBRATION_POSITION) != len(self.SERVO_IDS):
-                self.CALIBRATION_POSITION = [0.0] * len(self.SERVO_IDS)
-                logger.warning(f"UR3: CALIBRATION_POSITION updated to match SERVO_IDS: {self.CALIBRATION_POSITION}")
-
-            joint_count = len(self.lower_joint_limits)
-            tool0_link_index: Optional[int] = None
-            gripper_joint_index: Optional[int] = None
-
-            for i in range(joint_count):
-                info = self.sim.get_joint_info(self.p_robot_id, i)
-                # info[1] -> jointName (bytes), info[12] -> linkName (bytes)
-                try:
-                    joint_name = info[1].decode("utf-8") if isinstance(info[1], bytes) else str(info[1])
-                    link_name = info[12].decode("utf-8") if isinstance(info[12], bytes) else str(info[12])
-                except Exception:
-                    joint_name = str(info[1])
-                    link_name = str(info[12])
-
-                if link_name == "tool0":
-                    logger.warning(f"!!!!UR3: Found 'tool0' link at index {i}.")
-                    tool0_link_index = i
-                if joint_name == "robotiq_85_left_knuckle_joint":
-                    logger.warning(f"!!!!UR3: Found Robotiq gripper joint at index {i}.")
-                    gripper_joint_index = i
-
-            if tool0_link_index is not None:
-                self.END_EFFECTOR_LINK_INDEX = tool0_link_index
-            else:
-                logger.warning("UR3: Could not find 'tool0' link; using last wrist link for FK.")
-                # Fallback to wrist_3 link (common for UR)
-                self.END_EFFECTOR_LINK_INDEX = min(5, joint_count - 1)
-
-            if gripper_joint_index is not None:
-                self.GRIPPER_JOINT_INDEX = gripper_joint_index
-            else:
-                logger.warning(
-                    "UR3: Could not find Robotiq gripper joint; using last revolute joint as gripper."
-                )
-                # Fallback to the last actuated joint
-                self.GRIPPER_JOINT_INDEX = self.actuated_joints[-1]
-
-            # Recompute initial angle for gripper for simulation control
-            try:
-                self.gripper_initial_angle = self.sim.get_joint_state(
-                    robot_id=self.p_robot_id, joint_index=self.GRIPPER_JOINT_INDEX
-                )[0]
-            except Exception:
-                pass
-
-        except Exception as e:
-            logger.warning(f"UR3: Post-init index refinement failed: {e}")
-
+        # Recompute initial angle for gripper for simulation control
+        self.gripper_initial_angle = self.sim.get_joint_state(
+            robot_id=self.p_robot_id, joint_index=self.GRIPPER_JOINT_INDEX
+        )[0]
+        
     # Simulation-only driver: no real hardware IO below
     async def connect(self) -> None:
         self.is_connected = False
