@@ -217,8 +217,8 @@ class PyBulletSimulation:
 
         for i in range(num_joints):
             joint_type = self.get_joint_info(robot_id, i)[2]
-            logger.debug(f"Joint {i} type: {joint_type}")
-            logger.debug(f"Joint {i} info: {self.get_joint_info(robot_id, i)}")
+            # logger.debug(f"Joint {i} type: {joint_type}")
+            # logger.debug(f"Joint {i} info: {self.get_joint_info(robot_id, i)}")
 
             # Consider only revolute joints
             if joint_type in [p.JOINT_REVOLUTE]:
@@ -229,10 +229,10 @@ class PyBulletSimulation:
                 )
 
         # Store robot info
-        logger.info(
-            f"Loaded URDF: {urdf_path}, Robot ID: {robot_id}, "
-            f"Num Joints: {num_joints}, Actuated Joints: {len(actuated_joints)}"
-        )
+        # logger.info(
+        #     f"Loaded URDF: {urdf_path}, Robot ID: {robot_id}, "
+        #     f"Num Joints: {num_joints}, Actuated Joints: {len(actuated_joints)}"
+        # )
         self.robots[robot_id] = {
             "urdf_path": urdf_path,
             "num_joints": num_joints,
@@ -254,8 +254,8 @@ class PyBulletSimulation:
             logger.warning("Simulation is not connected, cannot set joint states")
             return
 
-        logger.debug(f"Setting joint states for robot {robot_id}, "
-                     f"joint indices: {joint_indices}, target positions: {target_positions}")
+        # logger.debug(f"Setting joint states for robot {robot_id}, "
+        #              f"joint indices: {joint_indices}, target positions: {target_positions}")
 
         p.setJointMotorControlArray(
             bodyIndex=robot_id,
