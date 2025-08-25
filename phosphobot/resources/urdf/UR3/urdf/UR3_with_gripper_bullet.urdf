@@ -484,7 +484,7 @@
   <joint name="mount_gripper_to_tool0" type="fixed">
     <parent link="tool0"/>
     <child link="robotiq_85_adapter_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 -1.55 0"/>
   </joint>
 
 </robot>
